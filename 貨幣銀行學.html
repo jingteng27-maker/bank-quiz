@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>銀行與貨幣政策選擇題小遊戲</title>
+<style>
+  body {
+    font-family: "微軟正黑體", sans-serif;
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 0 15px;
+    background: #f7f9fc;
+    color: #333;
+  }
+  h1 {
+    text-align: center;
+    color: #007acc;
+  }
+  .question {
+    font-size: 1.2em;
+    margin-bottom: 20px;
+  }
+  .options {
+    list-style: none;
+    padding: 0;
+  }
+  .options li {
+    margin-bottom: 10px;
+  }
+  button.option-btn {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1em;
+    border: 2px solid #007acc;
+    background: white;
+    color: #007acc;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  button.option-btn:hover:not(:disabled) {
+    background-color: #007acc;
+    color: white;
+  }
+  button.option-btn.correct {
+    background-color: #28a745;
+    color: white;
+    border-color: #28a745;
+    cursor: default;
+  }
+  button.option-btn.wrong {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+    cursor: default;
+  }
+  #buttons-container {
+    margin-top: 25px;
+    display: flex;
+    justify-content: space-between;
+  }
+  #buttons-container button {
+    padding: 10px 20px;
+    font-size: 1em;
+    background-color: #007acc;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    min-width: 100px;
+  }
+  #buttons-container button:disabled {
+    background-color: #a6c8f0;
+    cursor: not-allowed;
+  }
+  #score {
+    font-size: 1.3em;
+    text-align: center;
+    margin-top: 30px;
+    color: #007acc;
+  }
+</style>
+</head>
+<body>
+<h1>銀行與貨幣政策選擇題小遊戲</h1>
+<div id="quiz-container">
+  <div id="question" class="question"></div>
+  <ul id="options" class="options"></ul>
+  <div id="buttons-container">
+    <button id="prev-btn" disabled>上一題</button>
+    <button id="next-btn" disabled>下一題</button>
+  </div>
+</div>
+<div id="score" style="display:none;"></div>
+
+<script>
+// 題目清單
+const questionsData = [
+  // Ch 8 銀行的業務與經營
+  {
+    question: "下列何者不是銀行的負債項目？",
+    options: { A: "政府存款", B: "進口結匯保證金", C: "政府債券", D: "企業及個人存款" },
+    answer: "C"
+  },
+  {
+    question: "銀行持有的資產中那一項的流動性最高？",
+    options: { A: "超額準備", B: "國庫券", C: "商業本票", D: "可轉讓定期存單" },
+    answer: "A"
+  },
+  {
+    question: "下列何者不是銀行的資產項目？",
+    options: { A: "證券投資", B: "不動產投資", C: "國外資產", D: "政府存款" },
+    answer: "D"
+  },
+  {
+    question: "依我國現行法規，下列何者不能充當銀行的法定存款準備金？",
+    options: { A: "庫存現金", B: "待收票據", C: "國庫券", D: "在中央銀行之存款" },
+    answer: "C"
+  },
+  {
+    question: "下列何者可以衡量銀行的資產品質？",
+    options: { A: "流動準備率", B: "逾期放款比率", C: "資本適足率", D: "資產報酬率" },
+    answer: "B"
+  },
+  {
+    question: "在銀行的資產總額中以下列何者所佔的比重最大？",
+    options: { A: "準備金", B: "政府公債", C: "應收現金", D: "放款" },
+    answer: "D"
+  },
+  // Ch 9 金融監理
+  {
+    question: "台灣的中央存款保險公司係由財政部及誰共同出資成立？",
+    options: { A: "經濟部", B: "中央銀行", C: "審計部", D: "經建會" },
+    answer: "B"
+  },
+  {
+    question: "關於存款保險制度的描述，下列何者錯誤？",
+    options: { A: "可以強化社會大眾對銀行的信心", B: "可能降低存款戶篩選好銀行的誘因", C: "可能鼓勵銀行從事高風險投資活動", D: "可能降低銀行的資產報酬率" },
+    answer: "D"
+  },
+  {
+    question: "下列有關「太大不能倒」政策之敘述，何者錯誤？",
+    options: { A: "小型銀行倒閉時採現金賠付法，大型銀行倒閉時採概括承受法", B: "大型銀行倒閉的社會成本較高，所以採取此政策", C: "此政策會導致大型銀行的資產報酬率不如小型銀行", D: "此政策會增加大型銀行的道德風險" },
+    answer: "C"
+  },
+  {
+    question: "下列何種存款保險制度的道德風險問題最大？",
+    options: { A: "現金賠付法", B: "概括承受法", C: "差別保險費率", D: "強制投保制度" },
+    answer: "B"
+  },
+  {
+    question: "目前我國的金融監理機構為？",
+    options: { A: "財政部", B: "中央銀行", C: "行政院金融監督管理委員會", D: "經濟部" },
+    answer: "C"
+  },
+  {
+    question: "下列何者不是單一監理制度的優點？",
+    options: { A: "提升監理效率", B: "節省監理成本", C: "避免爭功諉過", D: "專業分工" },
+    answer: "D"
+  },
+  {
+    question: "金融監理制度可分為「多元監理制度」與「單一監理制度」，下列何者錯誤？",
+    options: { A: "多元監理制度下，對問題金融機構的處理反應較為迅速", B: "多元監理制度下，能以整體性的角度對金融集團營運的健全性進行評估", C: "單一監理制度下，可以節省監理成本", D: "單一監理制度下，可以避免監理權相爭與互相推卸責任之弊端" },
+    answer: "B"
+  },
+  {
+    question: "下列何者不會增加銀行的風險？",
+    options: { A: "降低資產組合的分散程度", B: "以放款取代政府債券投資", C: "提高自有資本比例", D: "擴大利率缺口" },
+    answer: "C"
+  },
+  {
+    question: "政府對銀行自有資本之規定可以減少？",
+    options: { A: "交易成本", B: "銀行獲利能力", C: "逆選擇與道德風險", D: "經營成本問題" },
+    answer: "C"
+  },
+  {
+    question: "存款保險公司的主要功能是？",
+    options: { A: "金融市場資金中介者", B: "支付系統的監管者", C: "政府的銀行", D: "存款的保護者" },
+    answer: "D"
+  },
+  {
+    question: "下列何者不是新版巴塞爾協定的三大支柱之一？",
+    options: { A: "以外部或內部的信用評等信用風險權數", B: "金融監理機構有責任審核銀行的經營風險承受能力", C: "要求銀行採取全面加入該國的存款保險制度", D: "要求銀行充分揭露其風險暴露程度" },
+    answer: "C"
+  },
+  {
+    question: "下列何者是屬於「市場制約」的金融監理運作方式？",
+    options: { A: "銀行同業的自律規範", B: "金融法規的修訂", C: "金檢人員的查核", D: "對金融機構的信用評等" },
+    answer: "D"
+  },
+  // Ch 10 中央銀行制度
+  {
+    question: "中央銀行制度為何會在一次世界大戰結束後蓬勃發展？",
+    options: { A: "美國中央銀行制度的成功", B: "金屬本位制度的沒落", C: "紙本位制度的興起", D: "以上皆是" },
+    answer: "D"
+  },
+  {
+    question: "下列有關中央銀行的敘述，何者正確？",
+    options: { A: "扮演最後貸放者，因此稱為發行銀行", B: "辦理國庫收付、經理公債，因此稱為政府的銀行", C: "台灣主要金融監理機關為中央銀行", D: "台灣的中央銀行隸屬於總統府" },
+    answer: "B"
+  },
+  {
+    question: "下列何者不是中央銀行的功能？",
+    options: { A: "管理外匯存底", B: "對企業提供融資", C: "制定貨幣政策", D: "維持支付體系的運作" },
+    answer: "B"
+  },
+  {
+    question: "下列何者是我國中央銀行的經營目標？",
+    options: { A: "促進金融穩定", B: "健全銀行業務", C: "維護對內及對外幣值的穩定", D: "以上皆是" },
+    answer: "D"
+  },
+  {
+    question: "下列有關美國聯邦準備制度的敘述，何者錯誤？",
+    options: { A: "聯邦準備理事會的職權為決定法定準備率和貼現率", B: "共有12家聯邦準備銀行", C: "最高權力機構是聯邦公開市場委員會", D: "聯邦公開市場委員會決定公開市場操作政策" },
+    answer: "C"
+  },
+  {
+    question: "下列何者是美國聯邦準備制度的最高決策機構？",
+    options: { A: "聯邦準備銀行", B: "聯邦準備理事會", C: "聯邦公開市場委員會", D: "聯邦咨詢委員會" },
+    answer: "B"
+  },
+  {
+    question: "中央銀行又稱為銀行的銀行，其原因為何？",
+    options: { A: "中央銀行負有監督銀行業務的責任", B: "中央銀行獨佔通貨發行權力", C: "中央銀行可以對銀行提供資金融通", D: "中央銀行辦理國庫收支、經理中央政府公債" },
+    answer: "C"
+  },
+  {
+    question: "下列何者可以提升中央銀行的獨立性？",
+    options: { A: "中央銀行總裁職位採任期制", B: "中央銀行可以獨立控制貨幣政策工具", C: "中央銀行的預算獨立", D: "以上皆是" },
+    answer: "D"
+  },
+  // Ch 11 貨幣供給的創造與決定因素
+  {
+    question: "下列敘述何者正確？",
+    options: { A: "若中央銀行對政府赤字給予融資，則會造成準備貨幣減少", B: "中央銀行在公開市場買進政府債券，會造成準備貨幣減少", C: "中央銀行調高重貼現率，將造成準備貨幣增加", D: "金融機構增加向中央銀行的融資，會使準備貨幣增加" },
+    answer: "D"
+  },
+  {
+    question: "下列存款，何者之存款準備率最高？",
+    options: { A: "活期存款", B: "定期存款", C: "支票存款", D: "儲蓄存款" },
+    answer: "C"
+  },
+  {
+    question: "在貨幣供給創造過程中，準備貨幣增加一單位，貨幣供給將呈倍數增加，我們稱之為？",
+    options: { A: "倒數效果", B: "乘數效果", C: "邊際效益遞減效果", D: "邊際成本遞增效果" },
+    answer: "B"
+  },
+  {
+    question: "下列何項者會使一國之貨幣供給乘數增加？",
+    options: { A: "貨幣基數增加", B: "大眾持有之現金比率增加", C: "法定準備率增加", D: "超額準備存款率減少" },
+    answer: "D"
+  },
+  {
+    question: "下列何者會使貨幣供給乘數上升？",
+    options: { A: "重貼現率的下跌", B: "現金比的下跌", C: "法定準備率上升", D: "超額準備率上升" },
+    answer: "B"
+  },
+  {
+    question: "當社會大眾持有現金的比例與活期存款的法定準備率越高，下列敘述何者正確？",
+    options: { A: "存款乘數愈高、M1A乘數愈低與放款乘數愈高", B: "存款乘數愈低、M1A乘數愈低與放款乘數愈低", C: "存款乘數愈高、M1A乘數愈低與放款乘數愈高", D: "存款乘數愈低、M1A乘數愈高與放款乘數愈低" },
+    answer: "B"
+  },
+  {
+    question: "一般民眾與企業持有的現金與銀行體系的存款準備金構成？",
+    options: { A: "自由準備", B: "超額準備", C: "法定準備", D: "準備貨幣" },
+    answer: "D"
+  },
+  {
+    question: "下列敘述，何者錯誤？",
+    options: { A: "現金比率愈大，貨幣供給乘數M2將愈小。", B: "儲蓄存款比率愈大，貨幣供給乘數M2將愈大。", C: "定期存款比率愈大，貨幣供給乘數M2將愈小。", D: "超額準備率愈大，貨幣供給乘數M2將愈小。" },
+    answer: "C"
+  },
+  {
+    question: "以下敘述何者正確？",
+    options: { A: "地下經濟活動愈熱絡，現金比率k將愈大。", B: "市場利率愈高，現金比率k將愈大。", C: "活期存款利率愈高，現金比率k將愈大。", D: "其他資產的風險愈高，現金比率k將愈小。" },
+    answer: "A"
+  },
+  {
+    question: "下列何者不會影響定期存款比率t？",
+    options: { A: "財富增加", B: "股票預期報酬率上升", C: "公債利率上升", D: "稅率增加" },
+    answer: "D"
+  },
+  {
+    question: "下列何者不屬於貨幣基數B的組成？",
+    options: { A: "流通中的現金", B: "銀行對中央銀行的存款", C: "銀行對中央銀行的借款", D: "企業的活期存款" },
+    answer: "D"
+  },
+  {
+    question: "中央銀行增加市場操作，向市場賣出公債，下列何者會減少？",
+    options: { A: "銀行存款", B: "銀行準備金", C: "貨幣基數B", D: "以上皆是" },
+    answer: "D"
+  },
+  {
+    question: "若銀行的超額準備增加，貨幣乘數會？",
+    options: { A: "增加", B: "減少", C: "不變", D: "先增加再減少" },
+    answer: "B"
+  },
+  {
+    question: "金融機構持有大量超額準備，貨幣乘數變小，中央銀行可採何種措施避免貨幣乘數繼續降低？",
+    options: { A: "提高法定準備率", B: "下調重貼現率", C: "發行中央銀行票據", D: "提高公債利率" },
+    answer: "B"
+  },
+  {
+    question: "銀行業放款活動增加，下列何者會隨之上升？",
+    options: { A: "超額準備率", B: "法定準備率", C: "準備貨幣", D: "現金比率" },
+    answer: "C"
+  }
+];
+
+// 打亂題目順序的函式 (Fisher-Yates shuffle)
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+let questions = shuffleArray([...questionsData]); // 複製並打亂
+let currentIndex = 0;
+let score = 0;
+let answered = false;
+
+// DOM 元素
+const questionEl = document.getElementById("question");
+const optionsEl = document.getElementById("options");
+const nextBtn = document.getElementById("next-btn");
+const prevBtn = document.getElementById("prev-btn");
+const scoreEl = document.getElementById("score");
+
+// 用來記錄使用者答過的題目及答案狀態
+let userAnswers = new Array(questions.length).fill(null);
+
+function showQuestion() {
+  answered = false;
+  nextBtn.disabled = true;
+  prevBtn.disabled = currentIndex === 0;
+  const current = questions[currentIndex];
+  questionEl.textContent = `第 ${currentIndex + 1} 題：${current.question}`;
+
+  optionsEl.innerHTML = "";
+
+  for (const [key, value] of Object.entries(current.options)) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.textContent = `${key}. ${value}`;
+    btn.classList.add("option-btn");
+    btn.dataset.option = key;
+
+    // 若此題已答過且有答案，直接標示正確與否，且禁用按鈕
+    if (userAnswers[currentIndex] !== null) {
+      if (key === current.answer) {
+        btn.classList.add("correct");
+      }
+      if (userAnswers[currentIndex] === key && key !== current.answer) {
+        btn.classList.add("wrong");
+      }
+      btn.disabled = true;
+      answered = true;
+      nextBtn.disabled = false; // 已答過才可下一題
+    }
+
+    btn.addEventListener("click", () => {
+      if (answered) return;
+      answered = true;
+      nextBtn.disabled = false;
+
+      userAnswers[currentIndex] = key; // 記錄答案
+
+      if (key === current.answer) {
+        btn.classList.add("correct");
+        score++;
+      } else {
+        btn.classList.add("wrong");
+        // 顯示正確答案
+        Array.from(optionsEl.children).forEach(li => {
+          const button = li.querySelector("button");
+          if (button.dataset.option === current.answer) {
+            button.classList.add("correct");
+          }
+        });
+      }
+      // 禁用所有選項按鈕
+      Array.from(optionsEl.children).forEach(li => {
+        li.querySelector("button").disabled = true;
+      });
+    });
+
+    li.appendChild(btn);
+    optionsEl.appendChild(li);
+  }
+}
+
+nextBtn.addEventListener("click", () => {
+  if (currentIndex < questions.length - 1) {
+    currentIndex++;
+    showQuestion();
+  } else {
+    // 顯示分數
+    document.getElementById("quiz-container").style.display = "none";
+    scoreEl.style.display = "block";
+    scoreEl.textContent = `測驗結束！你答對了 ${score} 題，共 ${questions.length} 題。`;
+  }
+});
+
+prevBtn.addEventListener("click", () => {
+  if (currentIndex > 0) {
+    currentIndex--;
+    showQuestion();
+  }
+});
+
+// 初始化第一題
+showQuestion();
+</script>
+</body>
+</html>
